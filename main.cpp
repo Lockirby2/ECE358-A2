@@ -34,19 +34,22 @@ int main(int argc, char *argv[]) {
         string folder = "";
 
 	if (argc != 3) {
-		fprintf(stderr, "usage: ./addpeer [<port> <folder>]\n");
+		fprintf(stderr, "usage: ./pa2-358s17 [<port> <folder>]\n");
 		exit(1);
 	}
-        folder = argv[2];
 
-        try {
-            vector<BYTE> vec = readFile((folder + "filename").c_str());
-            for (unsigned int i = 0; i < vec.size(); i += 1) {
-                cout << vec.at(i) << endl;
-            }
-        } catch ( ... ) {
-	    fprintf(stderr, "File wasn't read correctly\n");
-        }   
+    //This code should be placed elsewhere, to be called when a connection is established
+
+    folder = argv[2];
+
+    try {
+        vector<BYTE> vec = readFile((folder + "filename").c_str());
+        for (unsigned int i = 0; i < vec.size(); i += 1) {
+            cout << vec.at(i) << endl;
+        }
+    } catch ( ... ) {
+        fprintf(stderr, "File wasn't read correctly\n");
+    }
 
 	return 0;
 }
