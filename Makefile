@@ -1,7 +1,7 @@
 CXX = g++										# compiler
 CXXFLAGS = -g -Wall -Wno-unused-label -MMD -pthread -std=c++11
 
-OBJECTS1 = main.o TCB.o server.o segment.o
+OBJECTS1 = main.o TCB.o server.o segment.o proxy.o
 EXEC1 = pa2-358s17
 
 OBJECTS = ${OBJECTS1} 				# all object files

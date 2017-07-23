@@ -1,8 +1,11 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <stdlib.h>     /* atoi */
 #include <string>
 #include <vector>
+#include "server.h"
+
 typedef unsigned char BYTE;
 
 using namespace std;
@@ -36,11 +39,16 @@ int main(int argc, char *argv[]) {
 	if (argc != 3) {
 		fprintf(stderr, "usage: ./pa2-358s17 [<port> <folder>]\n");
 		exit(1);
-	}
+    }
+
+    int port = atoi(argv[1]);
+    folder = argv[2];
+
+    Server server = Server(port, folder);
+    server.Run();
 
     //This code should be placed elsewhere, to be called when a connection is established
 
-    folder = argv[2];
 
     try {
         vector<BYTE> vec = readFile((folder + "filename").c_str());
