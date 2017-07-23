@@ -4,7 +4,8 @@
 #include <stdlib.h>     /* atoi */
 #include <string>
 #include <vector>
-#include "server.h"
+#include "UDPServer.h"
+//#include "message.h"
 
 typedef unsigned char BYTE;
 
@@ -44,8 +45,8 @@ int main(int argc, char *argv[]) {
     int port = atoi(argv[1]);
     folder = argv[2];
 
-    Server server = Server(port, folder);
-    server.Run();
+    UDPServer server = UDPServer(port, folder);
+    server.run();
 
     //This code should be placed elsewhere, to be called when a connection is established
 
