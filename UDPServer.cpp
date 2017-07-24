@@ -160,6 +160,30 @@ void UDPServer::stop()
 bool UDPServer::handle_msg(int client, const char *reply)
 {
     Message msg = Message::deserialize(reply);
+
+    vector<bool> flags = msg.decode_flags();
+
+
+    if(flags.at(0)){ //if syn
+        //initiate handshake
+        Message handshake = Message();
+
+        //source port comes from us, dest port from the client
+        handshake.source_port = port;
+        handshake.dest_port = msg.source_port;
+
+        handshake.ack_num = msg.seq_num + 1;
+        //this means syn = 0, ack = 1, fin = 0
+        handshake.encode_flags(0,1,0);
+        // Without payload the seg size is 20 in bytes
+        handshake.seg_size = 20;
+        // The sequence is started at syn time I think.
+        // Also I think real servers randomize it, but iirc we get to chose the first seq number
+        handshake.seq_num = 1;
+        //TODO:
+        //SET CHECKSUM
+        //DO WE NEED ANY PAYLOAD?
+    }
     //FSM for sending?
     return true;
 }
