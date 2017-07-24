@@ -30,6 +30,7 @@ class Message{
 	public:
 		Message(int src, int dst, bool SYN, bool ACK, bool FIN, char* payload);
 		Message(int source_port_p, int dest_port_p);
+		Message();
 		void encode_flags(bool SYN, bool ACK, bool FIN);
 		int read_header(int socket, sockaddr_in addr);
 		vector<bool> decode_flags();

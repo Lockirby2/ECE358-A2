@@ -14,6 +14,8 @@ Message::Message(int src, int dst, bool SYN, bool ACK, bool FIN, char* payload):
 
 };
 
+Message::Message(){};
+
 void Message::encode_flags(bool SYN, bool ACK, bool FIN){
 	flags = 0;
 	flags |= SYN << 2;

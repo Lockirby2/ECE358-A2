@@ -96,13 +96,6 @@ int UDPServer::create_server_socket(int port)
         exit(1);
     }
 
-    if(listen(sockfd, 5) < 0)
-    {
-        cerr << "listen failed" << endl;
-        close(sockfd);
-        exit(1);
-    }
-
     server = sockfd;
     return sockfd;
 }
@@ -114,6 +107,8 @@ void UDPServer::run()
     sockaddr_in source_addr;
     socklen_t fromLength = sizeof(source_addr);
     ssize_t recv_msg_size;
+
+    create_server_socket(port);
 
     while (true) {
         recv_msg_size = recvfrom( server, (void *)buffer, sizeof(buffer),
