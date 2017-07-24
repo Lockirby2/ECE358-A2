@@ -1,5 +1,7 @@
+#include "checkSumUtil.h"
+
 //streamSize is measured in bytes
-uint16_t computeSum(void* bytestream, int streamSize) {
+uint16_t CheckSumUtil::computeSum(void* bytestream, int streamSize) {
     uint16_t sum = 0;
     for (void* it = bytestream; it < static_cast<uint8_t*>(bytestream) + streamSize; it = static_cast<uint8_t*>(it) + 1) {
         // read high byte
@@ -19,7 +21,7 @@ uint16_t computeSum(void* bytestream, int streamSize) {
     return sum;
 }
 
-bool checkChecksum(int16_t checksum, void* bytestream, int streamSize) {
+bool CheckSumUtil::checkChecksum(int16_t checksum, void* bytestream, int streamSize) {
     uint16_t sum = computeSum(bytestream, streamSize);
     if (sum + checksum == 0xFFFF) return true;
     return false;

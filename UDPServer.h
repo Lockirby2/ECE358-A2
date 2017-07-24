@@ -19,8 +19,8 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <map>
-#include "message.h"
 #include "TCB.h"
+#include "checkSumUtil.h"
 
 using namespace std;
 
@@ -49,6 +49,7 @@ public:
 
 public:
     int server;
+	void print_message(Message message);
     sockaddr_in socket_address_;
     std::vector<sockaddr_in> clients_;
     int port;

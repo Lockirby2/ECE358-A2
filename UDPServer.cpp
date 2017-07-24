@@ -108,6 +108,8 @@ void UDPServer::run()
     socklen_t fromLength = sizeof(source_addr);
     ssize_t recv_msg_size;
 
+    cout <<  get_ip() << endl;
+
     create_server_socket(port);
     while (true) {
         recv_msg_size = recvfrom( server, (void *)buffer, sizeof(buffer),
@@ -154,11 +156,15 @@ void UDPServer::stop()
 bool UDPServer::handle_msg(int client, const char *reply)
 {
     Message msg = Message::deserialize(reply);
+    print_message(msg);
 
     vector<bool> flags = msg.decode_flags();
+    cout << "message received" << endl;
 
+    cout << "syn: " << flags.at(0) << " ack: " << flags.at(1) << " fin = 0" << endl;
 
     if(flags.at(0)){ //if syn
+        cout << "it's a syn!" << endl;
         //initiate handshake
         // Should definitely do this with the beautiful constructor that sherwin made, but this helped me visually
         Message handshake = Message();
@@ -182,6 +188,10 @@ bool UDPServer::handle_msg(int client, const char *reply)
         tcb.current = TCB::synsent;
         connections.insert(pair<int, TCB>(msg.source_port, tcb));
 
+        const char* serial = handshake.serialize();
+        cout << serial << endl;
+        int size = CheckSumUtil::computeSum((void*)serial, handshake.seg_size);
+        cout << "checksum says: " << size << endl;
         //send back to them
     }
 
@@ -206,5 +216,16 @@ void UDPServer::send_message(Message msg, int client_index)
     }
 }
 
+
+void UDPServer::print_message(Message message){
+    cout << "Source port: " << message.source_port << endl;
+    cout << "Destination port: " << message.dest_port << endl;
+    cout << "Segment Size: " << message.seg_size << endl;
+    cout << "Sequence Number: " << message.seq_num<< endl;
+    cout << "Ack number: " << message.ack_num << endl;
+    cout << "Syn: " << message.decode_flags().at(0) << endl;
+    cout << "Ack: " << message.decode_flags().at(1) << endl;
+    cout << "Fin: " << message.decode_flags().at(2) << endl;
+}
 
 
