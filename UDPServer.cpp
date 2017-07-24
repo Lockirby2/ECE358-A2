@@ -109,7 +109,6 @@ void UDPServer::run()
     ssize_t recv_msg_size;
 
     create_server_socket(port);
-
     while (true) {
         recv_msg_size = recvfrom( server, (void *)buffer, sizeof(buffer),
                             0,
@@ -161,6 +160,7 @@ bool UDPServer::handle_msg(int client, const char *reply)
 
     if(flags.at(0)){ //if syn
         //initiate handshake
+        // Should definitely do this with the beautiful constructor that sherwin made, but this helped me visually
         Message handshake = Message();
 
         //source port comes from us, dest port from the client
@@ -178,7 +178,14 @@ bool UDPServer::handle_msg(int client, const char *reply)
         //TODO:
         //SET CHECKSUM
         //DO WE NEED ANY PAYLOAD?
+        TCB tcb = TCB();
+        tcb.current = TCB::synsent;
+        connections.insert(pair<int, TCB>(msg.source_port, tcb));
+
+        //send back to them
     }
+
+
     //FSM for sending?
     return true;
 }

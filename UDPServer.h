@@ -18,7 +18,9 @@
 #include <tuple>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
+#include <map>
 #include "message.h"
+#include "TCB.h"
 
 using namespace std;
 
@@ -26,6 +28,8 @@ class UDPServer{
 public:
 	UDPServer(int port, string server);
 	~UDPServer(){};
+
+	map<int, TCB> connections;
 
     void run();
 
