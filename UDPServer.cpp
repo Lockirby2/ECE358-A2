@@ -212,9 +212,9 @@ bool UDPServer::handle_msg(int client, const char *reply)
         int size = handshake.seg_size;
         handshake.checksum = 0;
 
-        handshake.fix_endian();
         const char* serial = handshake.serialize();
-        handshake.fix_endian();
+//        handshake.fix_endian();
+//        handshake.fix_endian();
 
         cout << serial << endl;
         int sum = CheckSumUtil::computeSum((void*)serial, size);
@@ -225,7 +225,6 @@ bool UDPServer::handle_msg(int client, const char *reply)
         send_message(handshake, client);
 
     }
-
 
     //FSM for sending?
     return true;

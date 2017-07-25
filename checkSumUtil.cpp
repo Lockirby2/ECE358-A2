@@ -26,3 +26,5 @@ bool CheckSumUtil::checkChecksum(uint16_t checksum, void* bytestream, int stream
     if (sum + checksum == 0xFFFF) return true;
     return false;
 }
+
+

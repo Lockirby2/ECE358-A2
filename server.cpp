@@ -24,13 +24,15 @@ void Server::Run() {
         struct sockaddr_in client;
         socklen_t alen = sizeof(struct sockaddr_in);
 
+        cout << "server ip: " << proxy.get_ip() << endl;
+
         cout << "accepting client" << endl;
         if ((client_socket = accept(server, (struct sockaddr *)&client, &alen)) < 0) {
             cerr << "Accept failed" << endl;
             exit(1);
         }
         //2. receive connection,
-
+        cout << "idk somethings fucky" << endl;
         char* message;
         proxy.receive_from_socket(client_socket, message);
 
