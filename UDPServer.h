@@ -19,6 +19,7 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <map>
+#include <bitset>
 #include "TCB.h"
 #include "checkSumUtil.h"
 

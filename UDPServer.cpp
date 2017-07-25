@@ -156,6 +156,13 @@ void UDPServer::stop()
 bool UDPServer::handle_msg(int client, const char *reply)
 {
     Message msg = Message::deserialize(reply);
+    msg.fix_endian();
+    
+    for (int i = 0; i < 20; i++){
+        bitset<8> x(reply[i]);
+        cout << x << endl;
+    }
+
     print_message(msg);
 
     vector<bool> flags = msg.decode_flags();

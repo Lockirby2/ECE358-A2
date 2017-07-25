@@ -34,6 +34,9 @@ class Message{
 		void encode_flags(bool SYN, bool ACK, bool FIN);
 		int read_header(int socket, sockaddr_in addr);
 		vector<bool> decode_flags();
+		void fix_endian();
+		void SwapEndian(uint16_t &val);
+		void SwapEndian(uint32_t &val);
 
 		//int read_header(int socket, sockaddr_in addr);
 
@@ -55,7 +58,7 @@ class Message{
 		//char buf[1] = "A";
 		//vector<char> payload;
 		//char* x;
-		//char x[65487];
+		//char x[65];
 		char* payload;
 
 };
