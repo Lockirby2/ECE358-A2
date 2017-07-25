@@ -157,21 +157,36 @@ bool UDPServer::handle_msg(int client, const char *reply)
 {
     Message msg = Message::deserialize(reply);
     msg.fix_endian();
-    
-    for (int i = 0; i < 20; i++){
+
+    int check = msg.checksum;
+    int segsize = msg.seg_size;
+    vector<bool> flags = msg.decode_flags();
+
+    msg.checksum = 0;
+
+    msg.fix_endian();
+    int sum = CheckSumUtil::computeSum((void*)msg.serialize(), segsize);
+    bool calc = CheckSumUtil::checkChecksum(check, (void*)msg.serialize(), segsize);
+
+    cout << "checksum computed: " << calc << " -- " << check << " them|us " << sum << " sum: " << sum + check << endl;
+
+    msg.fix_endian();
+
+
+    for (int i = 0; i < 20; i+=2){
         bitset<8> x(reply[i]);
-        cout << x << endl;
+        cout << x << " ";
+        bitset<8> y(reply[i+1]);
+        cout << y << endl;
     }
 
     print_message(msg);
 
-    vector<bool> flags = msg.decode_flags();
     cout << "message received" << endl;
 
-    cout << "syn: " << flags.at(0) << " ack: " << flags.at(1) << " fin = 0" << endl;
+    cout << "syn: " << flags.at(0) << " ack: " << flags.at(1) << " fin:" << flags.at(2) << endl;
 
     if(flags.at(0)){ //if syn
-        cout << "it's a syn!" << endl;
         //initiate handshake
         // Should definitely do this with the beautiful constructor that sherwin made, but this helped me visually
         Message handshake = Message();
@@ -181,25 +196,34 @@ bool UDPServer::handle_msg(int client, const char *reply)
         handshake.dest_port = msg.source_port;
 
         handshake.ack_num = msg.seq_num + 1;
-        //this means syn = 0, ack = 1, fin = 0
-        handshake.encode_flags(0,1,0);
+        //this means syn = 1, ack = 1, fin = 0
+        handshake.encode_flags(1,1,0);
         // Without payload the seg size is 20 in bytes
         handshake.seg_size = 20;
         // The sequence is started at syn time I think.
         // Also I think real servers randomize it, but iirc we get to chose the first seq number
-        handshake.seq_num = 1;
+        handshake.seq_num = 2;
         //TODO:
         //SET CHECKSUM
         //DO WE NEED ANY PAYLOAD?
         TCB tcb = TCB();
         tcb.current = TCB::synsent;
-        connections.insert(pair<int, TCB>(msg.source_port, tcb));
+//        connections.insert(pair<int, TCB>(msg.source_port, tcb));
+        int size = handshake.seg_size;
+        handshake.checksum = 0;
 
+        handshake.fix_endian();
         const char* serial = handshake.serialize();
+        handshake.fix_endian();
+
         cout << serial << endl;
-        int size = CheckSumUtil::computeSum((void*)serial, handshake.seg_size);
-        cout << "checksum says: " << size << endl;
-        //send back to them
+        int sum = CheckSumUtil::computeSum((void*)serial, size);
+        cout << "checksum set to: " << sum << endl;
+
+        handshake.fix_endian();
+        handshake.checksum = sum;
+        send_message(handshake, client);
+
     }
 
 
@@ -211,6 +235,8 @@ void UDPServer::send_message(Message msg, int client_index)
 {
 
     sockaddr_in clients_addr_ = clients_.at(client_index);
+
+    cout << "sending data to: " << clients_addr_.sin_port << endl;
     int result = sendto( server, msg.serialize(), sizeof(Message),
                      0,
                      reinterpret_cast<sockaddr *>(&clients_addr_),
