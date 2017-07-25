@@ -221,7 +221,7 @@ bool UDPServer::handle_msg(int client, const char *reply)
         cout << "checksum set to: " << sum << endl;
 
         handshake.fix_endian();
-        handshake.checksum = sum;
+        handshake.checksum = ~sum;
         send_message(handshake, client);
 
     }
