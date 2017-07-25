@@ -21,7 +21,7 @@ uint16_t CheckSumUtil::computeSum(void* bytestream, int streamSize) {
     return sum;
 }
 
-bool CheckSumUtil::checkChecksum(int16_t checksum, void* bytestream, int streamSize) {
+bool CheckSumUtil::checkChecksum(uint16_t checksum, void* bytestream, int streamSize) {
     uint16_t sum = computeSum(bytestream, streamSize);
     if (sum + checksum == 0xFFFF) return true;
     return false;
