@@ -165,28 +165,22 @@ bool UDPServer::handle_msg(int client, const char *reply)
     msg.checksum = 0;
 
     msg.fix_endian();
-    int sum = CheckSumUtil::computeSum((void*)msg.serialize(), segsize);
-    bool calc = CheckSumUtil::checkChecksum(check, (void*)msg.serialize(), segsize);
 
-    cout << "checksum computed: " << calc << " -- " << check << " them|us " << sum << " sum: " << sum + check << endl;
+    if (!CheckSumUtil::checkChecksum(check, (void*)msg.serialize(), segsize)){
+        int sum = CheckSumUtil::computeSum((void*)msg.serialize(), segsize);
+        cout << "checksum failed: " << check << " them|us " << sum << " sum: " << sum + check << endl;
+        return 0;
+    }
 
     msg.fix_endian();
 
-
-    for (int i = 0; i < 20; i+=2){
-        bitset<8> x(reply[i]);
-        cout << x << " ";
-        bitset<8> y(reply[i+1]);
-        cout << y << endl;
-    }
-
     print_message(msg);
 
-    cout << "message received" << endl;
-
-    cout << "syn: " << flags.at(0) << " ack: " << flags.at(1) << " fin:" << flags.at(2) << endl;
-
     if(flags.at(0)){ //if syn
+        if(connections.find(msg.source_port) != connections.end()){
+            cout << "received SYN from live connection, aborting new connection" << endl;
+            return 0;
+        }
         //initiate handshake
         // Should definitely do this with the beautiful constructor that sherwin made, but this helped me visually
         Message handshake = Message();
@@ -203,18 +197,16 @@ bool UDPServer::handle_msg(int client, const char *reply)
         // The sequence is started at syn time I think.
         // Also I think real servers randomize it, but iirc we get to chose the first seq number
         handshake.seq_num = 2;
-        //TODO:
-        //SET CHECKSUM
-        //DO WE NEED ANY PAYLOAD?
+
         TCB tcb = TCB();
-        tcb.current = TCB::synsent;
-//        connections.insert(pair<int, TCB>(msg.source_port, tcb));
+        tcb.current = TCB::synrecd;
+
+        connections.insert(pair<int, TCB>(msg.source_port, tcb));
+
         int size = handshake.seg_size;
         handshake.checksum = 0;
 
         const char* serial = handshake.serialize();
-//        handshake.fix_endian();
-//        handshake.fix_endian();
 
         cout << serial << endl;
         int sum = CheckSumUtil::computeSum((void*)serial, size);
@@ -223,9 +215,25 @@ bool UDPServer::handle_msg(int client, const char *reply)
         handshake.fix_endian();
         handshake.checksum = ~sum;
         send_message(handshake, client);
-
+        return 1;
     }
 
+    TCB* t;
+    if(connections.find(msg.source_port) == connections.end()){
+        cout << "received new connection without SYN aborting new connection" << endl;
+        return 0;
+    } else {
+        t = &connections.at(msg.source_port);
+    }
+
+
+    if (t->current == TCB::synrecd) {
+        t->current = TCB::estab;
+        cout << "connection established" << endl;
+        return 0;
+    }
+
+    
     //FSM for sending?
     return true;
 }
