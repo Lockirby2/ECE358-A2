@@ -6,7 +6,7 @@ using namespace std;
 
 class TCB{
 public:
-	enum State {closed, listen, synsent, synrecd, estab};
+	enum State {closed, listen, synrecd, estab};
 	State current;
 	TCB();
 	~TCB();
