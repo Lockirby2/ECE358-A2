@@ -51,6 +51,9 @@ public:
     int create_server_socket(int port);
 
     vector<BYTE> readFile(const char* filename);
+    void writeFile(const char* filename, vector<BYTE> data);
+
+    void sendFin(Message msg, int client);
 
     void send_message(Message msg, int socket);
 

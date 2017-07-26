@@ -124,6 +124,28 @@ vector<BYTE> UDPServer::readFile(const char* filename) {
     return vec;
 }
 
+void UDPServer::writeFile(const char* filename, vector<BYTE> data) {
+    cout << "Writing file at: " << filename << endl;
+    ofstream outfile(filename, ios_base::app);
+    
+    for (unsigned int i = 0; i < data.size(); i += 1) {
+        outfile << data.at(i);
+    }
+}
+
+void UDPServer::sendFin(Message msg, int client) {
+        Message response = Message();
+        response.encode_flags(0,0,1);
+        response.seg_size = 20;
+        response.source_port = port;
+        response.dest_port = msg.source_port;
+        response.ack_num = msg.seq_num + 1;
+        response.seq_num = msg.ack_num;
+        send_message(response, client);
+        clients_.erase(clients_.begin() + client);
+        connections.erase(msg.source_port);
+}
+
 void UDPServer::run()
 {
     char buffer[65487];
@@ -251,13 +273,15 @@ bool UDPServer::handle_msg(int client, const char *reply)
     if (flags.at(1) && !flags.at(0)) { // received ACK
         // if we have just established a connection, send a file
         if (connections.at(msg.source_port).current == TCB::synrecd) {
+            t->current = TCB::estab;
+            cout << "connection established" << endl;
             cout << "Sending file data upon connection startup" << endl;
             vector<BYTE> vec;
             stringstream filenameStream;
             filenameStream << inet_ntoa(clients_.at(client).sin_addr) << ".";
             filenameStream << msg.source_port << ".";
             filenameStream << get_ip() << ".";
-            filenameStream << get_server_port();
+            filenameStream << port;
             
             ifstream ifile(this->folder + filenameStream.str());
             if (ifile) {
@@ -273,7 +297,9 @@ bool UDPServer::handle_msg(int client, const char *reply)
                         cout << vec.at(i) << endl;
                     }
                 } catch ( ... ) {
+                    sendFin(msg, client);
                     fprintf(stderr, "File wasn't read correctly\n");
+                    
                 }
             } else {
                 vec.push_back(0x00);
@@ -281,19 +307,48 @@ bool UDPServer::handle_msg(int client, const char *reply)
                 vec.push_back(0x00);
                 vec.push_back(0x00);
             }
-            Message response = Message(get_server_port(), msg.source_port, false, false, false, static_cast<unsigned char*>(vec.data()));
+            Message response = Message(port, msg.source_port, false, false, false, static_cast<unsigned char*>(vec.data()));
             send_message(response, client);
         }
+        return 1;
     }
 
-    if (t->current == TCB::synrecd) {
-        t->current = TCB::estab;
-        cout << "connection established" << endl;
-        return 0;
+    if (flags.at(2)) { // received FIN
+        Message response = Message();
+        response.encode_flags(0,1,0);
+        response.seg_size = 20;
+        response.source_port = port;
+        response.dest_port = msg.source_port;
+        response.ack_num = msg.seq_num + 1;
+        response.seq_num = msg.ack_num;
+        send_message(response, client);
+        clients_.erase(clients_.begin() + client);
+        connections.erase(msg.source_port);
+        return 1;
     }
 
+    // handle normal client message
+    uint32_t payloadLength = (*msg.payload << 24) | (*(msg.payload + 1) << 16) | (*(msg.payload + 2) << 8) | (*(msg.payload + 3));
+    vector<BYTE> payload;
+    for (unsigned int i = 0; i < payloadLength; i += 1) {
+        payload.push_back(*(msg.payload + 4 + i));
+    }
+
+    stringstream filenameStream;
+    filenameStream << inet_ntoa(clients_.at(client).sin_addr) << ".";
+    filenameStream << msg.source_port << ".";
+    filenameStream << get_ip() << ".";
+    filenameStream << get_server_port();
+
+    try {
+        writeFile((this->folder + filenameStream.str()).c_str(), payload);
+        Message response = Message(port, msg.source_port, false, false, false, msg.payload);
+        send_message(response, client);
+    } catch ( ... ) {
+        sendFin(msg, client);
+        fprintf(stderr, "File wasn't read correctly\n");
+    }
     
-    //FSM for sending?
     return true;
 }
 
