@@ -28,7 +28,7 @@ int UDPServer::get_client_num(sockaddr_in source_addr)
 {
     sockaddr_in client_addr;
 
-    for (int i = 0; i < clients_.size(); i++) {
+    for (unsigned int i = 0; i < clients_.size(); i++) {
         client_addr = clients_.at(i);
 
         if (client_addr.sin_port == source_addr.sin_port &&
@@ -100,6 +100,29 @@ int UDPServer::create_server_socket(int port)
     return sockfd;
 }
 
+vector<BYTE> UDPServer::readFile(const char* filename) {
+    cout << "Reading file at: " << filename << endl;
+    // open the file:
+    ifstream file(filename, ios::binary);
+    file.unsetf(ios::skipws);
+
+    // get filesize
+    streampos fileSize;
+    file.seekg(0, ios::end);
+    fileSize = file.tellg();
+    file.seekg(0, ios::beg);
+
+    // reserve capacity
+    vector<BYTE> vec;
+    vec.reserve(fileSize);
+
+    // read the data:
+    vec.insert(vec.begin(),
+               istream_iterator<BYTE>(file),
+               istream_iterator<BYTE>());
+
+    return vec;
+}
 
 void UDPServer::run()
 {
@@ -207,8 +230,8 @@ bool UDPServer::handle_msg(int client, const char *reply)
         //SET CHECKSUM
         //DO WE NEED ANY PAYLOAD?
         TCB tcb = TCB();
-        tcb.current = TCB::synsent;
-//        connections.insert(pair<int, TCB>(msg.source_port, tcb));
+        tcb.current = TCB::synrecd;
+        connections.insert(pair<int, TCB>(msg.source_port, tcb));
         int size = handshake.seg_size;
         handshake.checksum = 0;
 
@@ -226,6 +249,43 @@ bool UDPServer::handle_msg(int client, const char *reply)
 
     }
 
+    if (flags.at(1) && !flags.at(0)) { // received ACK
+        // if we have just established a connection, send a file
+        if (connections.at(msg.source_port).current == TCB::synrecd) {
+            cout << "Sending file data upon connection startup" << endl;
+            vector<BYTE> vec;
+            stringstream filenameStream;
+            filenameStream << inet_ntoa(clients_.at(client).sin_addr) << ".";
+            filenameStream << msg.source_port << ".";
+            filenameStream << get_ip() << ".";
+            filenameStream << get_server_port();
+            
+            ifstream ifile(this->folder + filenameStream.str());
+            if (ifile) {
+                try {
+                    //TODO: Test this
+                    vec = readFile((this->folder + filenameStream.str()).c_str());
+                    uint32_t vecSize = vec.size();
+                    vec.insert(vec.begin(), (vecSize | 0x000000FF));
+                    vec.insert(vec.begin(), ((vecSize | 0x0000FF00) >> 8));
+                    vec.insert(vec.begin(), ((vecSize | 0x00FF0000) >> 16));
+                    vec.insert(vec.begin(), ((vecSize | 0xFF000000) >> 24));
+                    for (unsigned int i = 0; i < vec.size(); i += 1) {
+                        cout << vec.at(i) << endl;
+                    }
+                } catch ( ... ) {
+                    fprintf(stderr, "File wasn't read correctly\n");
+                }
+            } else {
+                vec.push_back(0x00);
+                vec.push_back(0x00);
+                vec.push_back(0x00);
+                vec.push_back(0x00);
+            }
+            Message response = Message(get_server_port(), msg.source_port, false, false, false, static_cast<unsigned char*>(vec.data()));
+            send_message(response, client);
+        }
+    }
 
     //FSM for sending?
     return true;

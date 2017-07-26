@@ -3,7 +3,9 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iterator>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -25,6 +27,8 @@
 
 using namespace std;
 
+typedef unsigned char BYTE;
+
 class UDPServer{
 public:
 	UDPServer(int port, string server);
@@ -45,6 +49,8 @@ public:
 
     char* get_ip();
     int create_server_socket(int port);
+
+    vector<BYTE> readFile(const char* filename);
 
     void send_message(Message msg, int socket);
 
