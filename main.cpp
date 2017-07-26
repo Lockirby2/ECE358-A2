@@ -10,7 +10,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-        string folder = "";
+    string folder = "";
 
 	if (argc != 3) {
 		fprintf(stderr, "usage: ./pa2-358s17 [<port> <folder>]\n");

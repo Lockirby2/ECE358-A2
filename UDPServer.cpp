@@ -248,6 +248,12 @@ bool UDPServer::handle_msg(int client, const char *reply)
         t = &connections.at(msg.source_port);
     }
 
+    if (t->current == TCB::synrecd) {
+        t->current = TCB::estab;
+        cout << "connection established" << endl;
+        return 0;
+    }
+
     if (flags.at(1) && !flags.at(0)) { // received ACK
         // if we have just established a connection, send a file
         if (connections.at(msg.source_port).current == TCB::synrecd) {
@@ -286,13 +292,9 @@ bool UDPServer::handle_msg(int client, const char *reply)
         }
     }
 
-    if (t->current == TCB::synrecd) {
-        t->current = TCB::estab;
-        cout << "connection established" << endl;
-        return 0;
-    }
 
-    
+    //TODO Append to file and echo back
+
     //FSM for sending?
     return true;
 }
