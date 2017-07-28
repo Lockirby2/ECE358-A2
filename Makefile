@@ -2,7 +2,7 @@ CXX = g++										# compiler
 CXXFLAGS = -g -Wall -Wno-unused-label -MMD -pthread -std=c++11
 
 OBJECTS1 = main.o TCB.o UDPServer.o segment.o message.o checkSumUtil.o
-OBJECTS2 = clientMain.o UDPClient.o
+OBJECTS2 = clientMain.o UDPClient.o message.o checkSumUtil.o
 
 EXEC1 = pa2-358s17
 EXEC2 = testClient

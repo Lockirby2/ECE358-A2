@@ -231,12 +231,14 @@ bool UDPServer::handle_msg(int client, const char *reply)
         const char* serial = handshake.serialize();
 
         cout << serial << endl;
-        int sum = CheckSumUtil::computeSum((void*)serial, size);
+        uint16_t sum = CheckSumUtil::computeSum((void*)serial, size);
         cout << "checksum set to: " << sum << endl;
 
         handshake.fix_endian();
         handshake.checksum = ~sum;
         send_message(handshake, client);
+        bitset<8> x(handshake.checksum);
+        cout << x << endl;
         return 1;
     }
 
@@ -246,12 +248,6 @@ bool UDPServer::handle_msg(int client, const char *reply)
         return 0;
     } else {
         t = &connections.at(msg.source_port);
-    }
-
-    if (t->current == TCB::synrecd) {
-        t->current = TCB::estab;
-        cout << "connection established" << endl;
-        return 0;
     }
 
     if (flags.at(1) && !flags.at(0)) { // received ACK
@@ -287,7 +283,11 @@ bool UDPServer::handle_msg(int client, const char *reply)
                 vec.push_back(0x00);
                 vec.push_back(0x00);
             }
-            Message response = Message(get_server_port(), msg.source_port, false, false, false, static_cast<unsigned char*>(vec.data()));
+//            unsigned char* test = "Hello, its me";
+//            cout << test[0] << endl;
+            Message response = Message(get_server_port(), msg.source_port, false, false, false, static_cast<unsigned char*>(vec.data()), vec.size());
+            response.fix_endian();
+            cout << response.payload << endl;
             send_message(response, client);
         }
     }

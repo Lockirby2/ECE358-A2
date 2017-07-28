@@ -28,7 +28,7 @@ typedef uint8_t byte;
 
 class Message{
 	public:
-		Message(int src, int dst, bool SYN, bool ACK, bool FIN, unsigned char* payload);
+		Message(int src, int dst, bool SYN, bool ACK, bool FIN, unsigned char* payload, int segsize);
 		Message(int source_port_p, int dest_port_p);
 		Message();
 		void encode_flags(bool SYN, bool ACK, bool FIN);

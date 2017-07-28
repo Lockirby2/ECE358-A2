@@ -1,6 +1,38 @@
 #include "UDPClient.h"
+#include <bitset>
 
 using namespace std;
+
+/*Put in Client*/
+//sockaddr_in host_addr_;
+
+
+//void UDPClient::get_server_info(string address, string port)
+//{
+//    addrinfo *lookup, *lookup_head;
+//    int result = getaddrinfo(
+//            address.c_str(),
+//            port.c_str(),
+//            NULL,
+//            &lookup_head);
+//
+//    lookup = lookup_head;
+//
+//    while (lookup) {
+//        if (lookup->ai_family != AF_INET) {
+//            lookup = lookup->ai_next;
+//            continue;
+//        }
+//
+//        memcpy(&host_addr_, lookup->ai_addr, sizeof(sockaddr_in));
+//        break;
+//    }
+//
+//    freeaddrinfo(lookup_head);
+//
+//    host_addr_.sin_family = AF_INET;
+//    host_addr_.sin_port = htons(atoi(port.c_str()));
+//}
 
 char* UDPClient::get_ip() {
 
@@ -66,15 +98,15 @@ int UDPClient::send_length(int socket, int length){
     }
     return 0;
 }
-
-int UDPClient::send_message(int socket, int length, string message ){
-    int status = send(socket, message.c_str(), length + 1, 0);
-    if (status < 0) {
-        cerr << "send failed" << endl;
-        return -1;
-    }
-    return 0;
-}
+//
+//int UDPClient::send_message(int socket, int length, string message ){
+//    int status = send(socket, message.c_str(), length + 1, 0);
+//    if (status < 0) {
+//        cerr << "send failed" << endl;
+//        return -1;
+//    }
+//    return 0;
+//}
 
 
 int UDPClient::connect_to_server(char *hostname, int port)
@@ -106,18 +138,21 @@ int UDPClient::connect_to_server(char *hostname, int port)
     return client_fd;
 }
 
-void UDPClient::send_to_socket(int socket, string message){
-    int length = message.size();
-    if (send_length(socket, length) < 0){
-        cerr << "send_length failed" << endl;
-        exit(1);
-    }
+void UDPClient::send_message(Message msg, sockaddr_in client)
+{
 
-    if (send_message(socket, length, message) < 0){
-        cerr << "send_message failed" << endl;
+
+    cout << "sending data to: " << msg.dest_port << endl;
+    int result = sendto(server, msg.serialize(), sizeof(Message),
+                         0,
+                         reinterpret_cast<sockaddr *>(&client),
+                         sizeof(sockaddr_in)
+    );
+
+    if (result != sizeof(Message)) {
+        cerr << "error: failed to send entire message" << endl;
         exit(1);
     }
-    //cout << "Send: " << message << endl;
 }
 
 void UDPClient::receive_from_socket(int socket, string &message){
@@ -139,9 +174,8 @@ int UDPClient::create_server_socket()
 {
     int sockfd = -1;
     char *ip = get_ip();
-    cout << "ip: " << ip << endl;
 
-    if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
         cerr << "socket create failed" << endl;
         return -1;
     }
@@ -151,42 +185,122 @@ int UDPClient::create_server_socket()
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
     inet_aton(ip, (struct in_addr *)&sin.sin_addr.s_addr);
-    //sin.sin_port = htons(0);
+    sin.sin_port = htons(port);
 
-    unsigned short port;
-    for (port = 10000; port <= 11000; port++) {
-        sin.sin_port = htons(port);
-        if(::bind(sockfd, (struct sockaddr*)&sin, sizeof(struct sockaddr_in)) >= 0)
-        {
-            break;
-        }
-    }
-
-    if (port > 11000) {
-        cerr << "Port max exceeded" << endl;
-        exit(1);
-    }
-
-    if(listen(sockfd, 5) < 0)
+    if(::bind(sockfd, (struct sockaddr*)&sin, sizeof(struct sockaddr_in)) < 0)
     {
-        cerr << "listen failed" << endl;
+        cout << "bind failed" << endl;
         close(sockfd);
         exit(1);
     }
-    cout << "port: " << port << endl;
 
+//    server = sockfd;
     return sockfd;
 }
 
-UDPClient::UDPClient(char* targetIp, int targetPort) {
+UDPClient::UDPClient(char* targetIp, int targetPort, int port) {
+    this->port = port;
     this->targetIp = targetIp;
     this->targetPort = targetPort;
 }
 
 void UDPClient::run() {
-//    int server = create_server_socket();
-    int sock = connect_to_server(targetIp, targetPort);
-    cout << "Huh... stuffs.... working?" << endl;
-    send_to_socket(sock, "");
+    struct sockaddr_in sin;
+
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = htonl(INADDR_ANY);
+    inet_aton(targetIp, (struct in_addr *)&sin.sin_addr.s_addr);
+    sin.sin_port = htons(targetPort);
+
+    server = create_server_socket();
+
+    vector<BYTE> vec;
+
+
+
+//    Message msg = Message();
+    Message msg = Message(port,targetPort, true, false, false, static_cast<unsigned char*>(vec.data()), vec.size());
+    msg.seg_size = 20;
+    msg.checksum = 0;
+    msg.ack_num = 0;
+    msg.seq_num = 22;
+    msg.fix_endian();
+    uint16_t checksum = CheckSumUtil::computeSum((void*)msg.serialize(), 20);
+    msg.fix_endian();
+//    cout << "checksum: " << ~checksum << endl;
+    msg.checksum = ~checksum;
+    msg.fix_endian();
+    send_message(msg, sin);
+
+    char buffer[65487];
+    sockaddr_in source_addr;
+    socklen_t fromLength = sizeof(source_addr);
+    ssize_t recv_msg_size;
+
+    recv_msg_size = recvfrom( server, (void *)buffer, sizeof(buffer),
+                              0,
+                              (struct sockaddr *)&source_addr,
+                              &fromLength
+    );
+
+    msg = Message::deserialize(buffer);
+    bitset<8> x(msg.checksum);
+    cout << x << endl;
+    cout << msg.checksum << endl;
+    msg.fix_endian();
+    print_message(msg);
+
+    Message second = Message(port,targetPort, false, true, false, static_cast<unsigned char*>(vec.data()), vec.size());
+    //checksum fucked? idk
+
+    second.seg_size = 20;
+    second.checksum = 0;
+    second.ack_num = msg.seq_num + 1;
+    second.seq_num = msg.ack_num;
+    second.fix_endian();
+    checksum = CheckSumUtil::computeSum((void*)second.serialize(), 20);
+    second.fix_endian();
+//    cout << "checksum: " << ~checksum << endl;
+    second.checksum = ~checksum;
+    second.fix_endian();
+    send_message(second, sin);
+
+    recv_msg_size = recvfrom( server, (void *)buffer, sizeof(buffer),
+                              0,
+                              (struct sockaddr *)&source_addr,
+                              &fromLength
+    );
+
+    int j;
+    for(j = 0; j < 24; ++j)
+        printf("%02x\n", ((uint8_t*) buffer)[j]);
+
+    msg = Message::deserialize(buffer);
+
+    msg.fix_endian();
+    print_message(msg);
+
+    cout << "Payload: " << msg.payload << endl;
+
+    int payloadSize = msg.seg_size - 20;
+
+
+
+    for (int i = 0; i < payloadSize; ++i) {
+        cout << *static_cast<uint8_t*>((msg.payload + i)) << endl;
+    }
+
+//    msg.fix_endian();
     //TODO listen for response
+}
+
+void UDPClient::print_message(Message message){
+    cout << "Source port: " << message.source_port << endl;
+    cout << "Destination port: " << message.dest_port << endl;
+    cout << "Segment Size: " << message.seg_size << endl;
+    cout << "Sequence Number: " << message.seq_num<< endl;
+    cout << "Ack number: " << message.ack_num << endl;
+    cout << "Syn: " << message.decode_flags().at(0) << endl;
+    cout << "Ack: " << message.decode_flags().at(1) << endl;
+    cout << "Fin: " << message.decode_flags().at(2) << endl;
 }

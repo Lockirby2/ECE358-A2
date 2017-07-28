@@ -22,15 +22,20 @@
 #include <ifaddrs.h>
 #include <map>
 #include <string>
+//#include "message.h"
+#include "checkSumUtil.h"
+
+typedef unsigned char BYTE;
 
 using namespace std;
 
 class UDPClient{
     int port;
+    int server;
     int targetPort;
     char* targetIp;
 public:
-    UDPClient(char* targetIP, int targetPort);
+    UDPClient(char* targetIP, int targetPort, int port);
     void run();
     void receive_from_socket(int socket, string &message);
     void send_to_socket(int socket, string message);
@@ -38,7 +43,9 @@ public:
     int read_length(int socket, int &length);
     int read_message(int socket, int length, string &message);
     int send_length(int socket, int length);
-    int send_message(int socket, int length, string message );
+//    int send_message(int socket, int length, string message );
     int create_server_socket();
+    void send_message(Message msg, sockaddr_in);
+    void print_message(Message msg);
     char* get_ip();
 };

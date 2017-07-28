@@ -8,10 +8,12 @@
 #include "message.h"
 
 //Send SYN
-Message::Message(int src, int dst, bool SYN, bool ACK, bool FIN, unsigned char* payload): source_port(src), dest_port(dst), payload(payload){
+Message::Message(int src, int dst, bool SYN, bool ACK, bool FIN, unsigned char* payload, int seg_size): source_port(src), dest_port(dst), payload(payload){
 	encode_flags(SYN, ACK, FIN);
-	seg_size = sizeof(payload)/sizeof(char) + 20;
-
+	this->seg_size = seg_size;
+	this->seg_size += 20;
+//	seg_size = sizeof(payload)/sizeof(char) + 20;
+//	this->seg_size = seg_size + 20;
 };
 
 Message::Message(){};
