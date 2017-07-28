@@ -58,7 +58,7 @@ public:
     int server;
 	void print_message(Message message);
     sockaddr_in socket_address_;
-    std::vector<sockaddr_in> clients_;
+    std::vector<sockaddr_in> addr_clients;
     int port;
 	string folder;
 

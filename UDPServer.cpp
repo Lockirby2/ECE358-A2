@@ -24,21 +24,21 @@ string UDPServer::get_server_address() {
 
 
 
-int UDPServer::get_client_num(sockaddr_in source_addr)
+int UDPServer::get_client_num(sockaddr_in source)
 {
     sockaddr_in client_addr;
 
-    for (unsigned int i = 0; i < clients_.size(); i++) {
-        client_addr = clients_.at(i);
+    for (unsigned int i = 0; i < addr_clients.size(); i++) {
+        client_addr = addr_clients.at(i);
 
-        if (client_addr.sin_port == source_addr.sin_port &&
-            client_addr.sin_addr.s_addr == source_addr.sin_addr.s_addr) {
+        if (client_addr.sin_port == source.sin_port &&
+            client_addr.sin_addr.s_addr == source.sin_addr.s_addr) {
             return i;
         }
     }
 
-    clients_.push_back(source_addr);
-    return (clients_.size() - 1);
+    addr_clients.push_back(source);
+    return (addr_clients.size() - 1);
 
 }
 
@@ -142,7 +142,7 @@ void UDPServer::run()
                         );
 
         if (recv_msg_size < 0) {
-            cerr << "error: could not receive message" << endl;
+            cerr << "error: Recv failed" << endl;
             exit(1);
         }
 
@@ -256,7 +256,7 @@ bool UDPServer::handle_msg(int client, const char *reply)
             cout << "Sending file data upon connection startup" << endl;
             vector<BYTE> vec;
             stringstream filenameStream;
-            filenameStream << inet_ntoa(clients_.at(client).sin_addr) << ".";
+            filenameStream << inet_ntoa(addr_clients.at(client).sin_addr) << ".";
             filenameStream << msg.source_port << ".";
             filenameStream << get_ip() << ".";
             filenameStream << get_server_port();
@@ -302,12 +302,12 @@ bool UDPServer::handle_msg(int client, const char *reply)
 void UDPServer::send_message(Message msg, int client_index)
 {
 
-    sockaddr_in clients_addr_ = clients_.at(client_index);
+    sockaddr_in addr_clientsaddr_ = addr_clients.at(client_index);
 
-    cout << "sending data to: " << clients_addr_.sin_port << endl;
+    cout << "sending data to: " << addr_clientsaddr_.sin_port << endl;
     int result = sendto( server, msg.serialize(), sizeof(Message),
                      0,
-                     reinterpret_cast<sockaddr *>(&clients_addr_),
+                     reinterpret_cast<sockaddr *>(&addr_clientsaddr_),
                      sizeof(sockaddr_in)
                  );
 
